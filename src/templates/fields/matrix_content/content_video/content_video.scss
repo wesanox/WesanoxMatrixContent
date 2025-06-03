@@ -1,0 +1,22 @@
+.content_video {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  .video-button {
+    transform: translate(-50%, -50%);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+
+    &:hover {
+      cursor: pointer;
+
+      .play-icon {
+        opacity: .8;
+        transition: ease all 0.3s;
+        cursor: pointer;
+      }
+    }
+  }
+}
