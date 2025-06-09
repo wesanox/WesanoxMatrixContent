@@ -2,21 +2,20 @@
 
 namespace ProcessWire;
 
-use ProcessWire\Module;
-
 class WesanoxMatrixContent extends WireData implements Module
 {
     public static function getModuleInfo()
     {
         return array(
-            'title' => 'Wesanox Content Matrix',
+            'title' => 'wesanox Content Matrix',
             'summary' => 'The Matrix Helper Module for Processwire made by wesanox. It creates the Content Matrix.',
             'version' => '0.1.1',
             'author' => 'Frittenfritze',
             'href' => 'https://wesanox.de',
+            'icon' => 'codepen',
             'singular' => true,
             'autoload' => true,
-            'installs' => ['PageFrontEdit', 'CroppableImage3'],
+            'installs' => ['PageFrontEdit', 'CroppableImage3','WesanoxFrameworkPackage'],
             'requires' => array(
                 'ProcessWire>=3.0.210',
                 'PHP>=8.0.0',
@@ -33,6 +32,7 @@ class WesanoxMatrixContent extends WireData implements Module
 
     protected array $externalModules = [
         'CroppableImage3' => 'https://github.com/horst-n/CroppableImage3/archive/master.zip',
+        'WesanoxFrameworkPackage' => 'https://github.com/wesanox/WesanoxFrameworkPackage/archive/refs/heads/main.zip',
     ];
 
     protected string $template_only_content;
