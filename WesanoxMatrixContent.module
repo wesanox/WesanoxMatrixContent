@@ -69,14 +69,14 @@ class WesanoxMatrixContent extends WireData implements Module
             }
         }
 
-        $tplFile = $this->config->paths->BytitMatrixHelper . 'src/templates/' .  $this->template_content_only . '.php';
+        $tplFile = $this->config->paths->WesanoxMatrixContent . 'src/templates/' .  $this->template_content_only . '.php';
         $targetFile = $this->config->paths->templates . $this->template_content_only . '.php';
 
         if (!file_exists($targetFile)) {
             copy($tplFile, $targetFile);
         }
 
-        $src = $this->config->paths->BytitMatrixHelper . 'src/templates/fields';
+        $src = $this->config->paths->WesanoxMatrixContent . 'src/templates/fields';
         $dst = $this->config->paths->templates . 'fields';
 
         $this->copyDirectory($src, $dst);
@@ -185,7 +185,15 @@ class WesanoxMatrixContent extends WireData implements Module
     }
 
     protected function copyDirectory($src, $dst) {
+        if (!is_dir($src) || !is_readable($src)) {
+            throw new \Exception("Source directory does not exist or is not readable: $src");
+        }
+
         $dir = opendir($src);
+        if ($dir === false) {
+            throw new \Exception("Failed to open directory: $src");
+        }
+
         if (!is_dir($dst)) mkdir($dst, 0755, true);
 
         while (false !== ($file = readdir($dir))) {
