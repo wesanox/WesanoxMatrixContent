@@ -1,0 +1,1 @@
+<?php echo $modules->get('WesanoxHelperClasses')->renderLink($page);

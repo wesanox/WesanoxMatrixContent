@@ -1,0 +1,1 @@
+<?php echo $modules->get('WesanoxHelperClasses')->getHeadline($page->edit('headline'), $page->headline_tags, $page->headline_class, $page->headline_align);
