@@ -305,7 +305,7 @@ return [
     [
         'name' => 'repeater_accordion',
         'type' => 'Repeater',
-        'label' => 'Inhalt',
+        'label' => 'Repeater (Accordion)',
         'tags' => 'repeater',
         'icon' => 'Repeat',
         'width' => 100,
