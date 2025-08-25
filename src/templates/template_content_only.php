@@ -1,3 +1,5 @@
 <div id="content">
-    <?php echo $page->render('matrix_content'); ?>
+    <div class="container">
+        <?php echo $modules->get('WesanoxHelperClasses')->renderMatrix('content', $page->matrix_content,  'div'); ?>
+    </div>
 </div>

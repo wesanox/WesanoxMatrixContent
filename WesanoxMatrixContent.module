@@ -21,28 +21,54 @@ class WesanoxMatrixContent extends WireData implements Module
                 'PHP>=8.0.0',
                 'FieldtypeRepeaterMatrix>=0.0.9',
                 'WesanoxFrameworkPackage>=0.0.1',
+                'WesanoxHelperFields>=0.0.1',
+                'WesanoxHelperClasses>=0.0.1',
             ),
         );
     }
 
-    protected array $internalModules = [
+    protected array $internal_modules = [
         'PageFrontEdit'
     ];
 
 
-    protected array $externalModules = [
+    protected array $external_modules = [
         'CroppableImage3' => 'https://github.com/horst-n/CroppableImage3/archive/master.zip',
         'WesanoxFrameworkPackage' => 'https://github.com/wesanox/WesanoxFrameworkPackage/archive/refs/heads/main.zip',
+        'WesanoxHelperFields' => 'https://github.com/wesanox/WesanoxHelperFields/archive/refs/heads/main.zip',
+        'WesanoxHelperClasses' => 'https://github.com/wesanox/WesanoxHelperClasses/archive/refs/heads/main.zip',
     ];
 
-    protected string $template_only_content;
+    /**
+     * @var Module|_Module|null $helper_classes
+     * @var Module|_Module|null $helper_fields
+     */
+    protected Module|_Module|null $helper_fields;
+    protected Module|_Module|null $helper_classes;
 
-    public function __construct()
+    /**
+     * @var array $fields_array
+     */
+    protected array $fields_array = [];
+
+    /**
+     * @var array $templates_content
+     */
+    protected array $templates_content = [
+        'content_only'
+    ];
+
+    /**
+     * @throws WirePermissionException
+     */
+    function __construct()
     {
-        /**
-         * set the Template Name
-         */
-        $this->template_content_only  = 'template_content_only';
+        parent::__construct();
+
+        $this->helper_classes = $this->modules->get('WesanoxHelperClasses');
+        $this->helper_fields = $this->modules->get('WesanoxHelperFields');
+
+        $this->fields_array = include $this->config->paths->WesanoxMatrixContent . 'config/fields.php';
     }
 
     /**
@@ -54,84 +80,63 @@ class WesanoxMatrixContent extends WireData implements Module
      */
     public function ___install() :void
     {
-        // Install internal modules
-        foreach ($this->internalModules as $moduleName) {
-            if (!$this->modules->isInstalled($moduleName)) {
-                $this->modules->get($moduleName);
+        /**
+         * Install internal modules
+         */
+        foreach ($this->internal_modules as $module_name) {
+            if (!$this->modules->isInstalled($module_name)) {
+                $this->modules->get($module_name);
             }
         }
 
-        // Install external modules
-        foreach ($this->externalModules as $moduleName => $moduleUrl) {
-            if (!$this->modules->isInstalled($moduleName)) {
-                $message = $this->downloadAndInstallModule($moduleName, $moduleUrl);
+        /**
+         * Install external modules
+         */
+        foreach ($this->external_modules as $module_name => $module_url) {
+            if (!$this->modules->isInstalled($module_name)) {
+                $message = $this->helper_classes->downloadInstall($module_name, $module_url);
                 if ($message !== true) $this->error($message);
             }
         }
 
-        $tplFile = $this->config->paths->WesanoxMatrixContent . 'src/templates/' .  $this->template_content_only . '.php';
-        $targetFile = $this->config->paths->templates . $this->template_content_only . '.php';
-
-        if (!file_exists($targetFile)) {
-            copy($tplFile, $targetFile);
-        }
-
-        $src = $this->config->paths->WesanoxMatrixContent . 'src/templates/fields';
-        $dst = $this->config->paths->templates . 'fields';
-
-        $this->copyDirectory($src, $dst);
-
         /**
-         * create the fields for the custom menu
+         * create fields
          */
-        $this->createFields($this->fields);
+        foreach ($this->fields_array as $field_array) {
+            $this->helper_fields->createFields($field_array);
+        }
 
         /**
          * if not exists, create content only Page
          */
-        if ( !$this->templates->get($this->template_content_only) ) {
-            $fg = new Fieldgroup();
-            $fg->name = $this->template_content_only;
-            $fg->add('title');
-            $fg->add('matrix_content');
-            $fg->save();
+        foreach ($this->templates_content as $template_content) {
+            $file = $this->config->paths->WesanoxMatrixContent . 'src/templates/template_' . $template_content . '.php';
+            $file_target = $this->config->paths->templates . 'template_' . $template_content . '.php';
 
-            $toc = new Template();
-            $toc->name = $this->template_content_only;
-            $toc->label = 'Content Only';
-            $toc->fieldgroup = $fg;
-            $toc->icon = 'File code o';
-            $toc->tags = 'Templates';
-            $toc->save();
-        } else {
-            $toc = $this->fieldgroups->get($this->template_content_only);
-            $toc->add('matrix_content');
-            $toc->save();
+            if (!is_file($file_target)) {
+                $this->files->copy($file, $file_target);
+            }
+
+            if ( !$this->templates->get('template_' . $template_content) ) {
+                $fg = new Fieldgroup();
+                $fg->name = 'template_' . $template_content;
+                $fg->add('title');
+                $fg->add('matrix_content');
+                $fg->save();
+
+                $t = new Template();
+                $t->name = 'template_' . $template_content;
+                $t->label = 'Content Only';
+                $t->fieldgroup = $fg;
+                $t->icon = 'File code o';
+                $t->tags = 'Templates';
+                $t->save();
+            } else {
+                $t = $this->fieldgroups->get('template_' . $template_content);
+                $t->add('matrix_content');
+                $t->save();
+            }
         }
-    }
-
-    private function downloadAndInstallModule($moduleName, $moduleURL) {
-        $success = false;
-        $targetDir = $this->wire()->config->paths->siteModules . $moduleName . '/';
-        $moduleInstaller = $this->wire()->modules->get('ProcessModuleInstall');
-        $destinationDir = $moduleInstaller->downloadModule($moduleURL, $targetDir);
-
-        // Refresh modules
-        if($destinationDir) {
-            $this->modules->refresh();
-        }
-
-        // Install module
-        if ($this->modules->isInstallable($moduleName)) {
-            $this->modules->get($moduleName);
-        }
-
-        // Check if module is installed
-        if ($this->modules->isInstalled($moduleName)) {
-            $success = true;
-        }
-
-        return $success ?: "Module $moduleName could not be installed.";
     }
 
     /**
@@ -143,608 +148,33 @@ class WesanoxMatrixContent extends WireData implements Module
     public function ___uninstall(): void
     {
         /**
-         * remove fields from option page
+         * delete template files
          */
-        if($this->templates->get($this->template_content_only)) {
-            $op = $this->fieldgroups->get($this->template_content_only);
-            $op->remove('matrix_content');
-            $op->save();
-        }
+        foreach ($this->templates_content as $template_content) {
+            $template_content = 'template_' . $template_content;
+            $file = $this->config->paths->templates . $template_content . '.php';
 
-        $file = $this->config->paths->templates . "$this->template_content_only.php";
+            if (is_file($file)) {
+                $this->files->unlink($file);
+            }
 
-        if (is_file($file)) {
-            unlink($file);
-        }
+            if ( $this->templates->get($template_content) ) {
+                $t = $this->fieldgroups->get($template_content);
+                $t->deleteAll();
+                $t->save();
 
-        if ($this->templates->get($this->template_content_only)->id && !$this->pages->count("template=$this->template_content_only")) {
-            $this->templates->delete($this->templates->get($this->template_content_only));
+                $this->templates->delete($this->templates->get($template_content));
+            }
         }
 
         /**
          * delete fields
          */
-        if ($this->fields->get('matrix_content')) $this->fields->delete($this->fields->get('matrix_content'));
+        $matrix_content = $this->fields->get('matrix_content');
+        $this->fields->delete($matrix_content);
 
-        if ($this->fields->get('headline')) $this->fields->delete($this->fields->get('headline'));
-        if ($this->fields->get('headline_tags')) $this->fields->delete($this->fields->get('headline_tags'));
-        if ($this->fields->get('headline_class')) $this->fields->delete($this->fields->get('headline_class'));
-        if ($this->fields->get('headline_align')) $this->fields->delete($this->fields->get('headline_align'));
-
-        if ($this->fields->get('text')) $this->fields->delete($this->fields->get('text'));
-
-        if ($this->fields->get('select_button_style')) $this->fields->delete($this->fields->get('select_button_style'));
-
-        if ($this->fields->get('image')) $this->fields->delete($this->fields->get('image'));
-        if ($this->fields->get('image_tablet')) $this->fields->delete($this->fields->get('image_tablet'));
-        if ($this->fields->get('image_mobile')) $this->fields->delete($this->fields->get('image_mobile'));
-
-        if ($this->fields->get('file_video')) $this->fields->delete($this->fields->get('file_video'));
+        $this->helper_fields->deleteFields($this->fields_array);
 
 //        $this->modules->uninstall('CroppableImage3');
-    }
-
-    protected function copyDirectory($src, $dst) {
-        if (!is_dir($src) || !is_readable($src)) {
-            throw new \Exception("Source directory does not exist or is not readable: $src");
-        }
-
-        $dir = opendir($src);
-        if ($dir === false) {
-            throw new \Exception("Failed to open directory: $src");
-        }
-
-        if (!is_dir($dst)) mkdir($dst, 0755, true);
-
-        while (false !== ($file = readdir($dir))) {
-            if ($file == '.' || $file == '..') continue;
-
-            $srcPath = $src . DIRECTORY_SEPARATOR . $file;
-            $dstPath = $dst . DIRECTORY_SEPARATOR . $file;
-
-            if (is_dir($srcPath)) {
-                $this->copyDirectory($srcPath, $dstPath);
-            } else {
-                // Wenn Datei nicht existiert oder unterschiedlich ist, kopieren
-                if (!file_exists($dstPath) || md5_file($srcPath) !== md5_file($dstPath)) {
-                    copy($srcPath, $dstPath);
-                }
-            }
-        }
-        closedir($dir);
-    }
-
-    /**
-     * create fields function for the module
-     *
-     * @param $fields
-     * @return void
-     * @throws WirePermissionException
-     */
-    private function createFields($fields): void
-    {
-        /**
-         * content_headline
-         */
-        if(!$fields->get('headline')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeText');
-            $field->name = "headline";
-            $field->label = $this->_('Überschrift');
-            $field->tags = 'headlines';
-            $field->icon = 'Header';
-            $field->textformatters = [0 => 'TextformatterEntities'];
-            $field->columnWidth = 25;
-            $field->save();
-        }
-
-        if(!$fields->get('headline_class')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeText');
-            $field->name = "headline_class";
-            $field->label = $this->_('Überschrift Klasse (CSS)');
-            $field->tags = 'headlines';
-            $field->icon = 'Header';
-            $field->textformatters = [0 => 'TextformatterEntities'];
-            $field->columnWidth = 25;
-            $field->save();
-        }
-
-        if(!$fields->get('headline_tags')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeOptions');
-            $field->name = "headline_tags";
-            $field->label = $this->_('Überschrift Tags (html)');
-            $field->tags = 'headlines';
-            $field->icon = 'Header';
-            $field->columnWidth = 25;
-            $field->save();
-
-            $manager = new SelectableOptionManager();
-            $options = '
-                1=h1
-                2=h2
-                3=h3
-                4=h4
-                5=h5
-                6=h6
-                7=p
-                ';
-            $manager->setOptionsString($field, $options, false);
-
-            $field->save();
-        }
-
-        if(!$fields->get('headline_align')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeOptions');
-            $field->name = "headline_align";
-            $field->label = $this->_('Überschrift Ausrichtung');
-            $field->tags = 'headlines';
-            $field->icon = 'Header';
-            $field->columnWidth = 25;
-            $field->save();
-
-            $manager = new SelectableOptionManager();
-            $options = '
-                1=links
-                2=mitte
-                3=rechts
-                ';
-            $manager->setOptionsString($field, $options, false);
-
-            $field->save();
-        }
-
-        /**
-         * content_text
-         */
-        if(!$fields->get('text')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeTextarea');
-            $field->name = "text";
-            $field->label = $this->_('Text');
-            $field->tags = 'text';
-            $field->icon = 'File text o';
-            $field->inputfieldClass = 'InputfieldCKEditor';
-            $field->columnWidth = 100;
-            $field->save();
-        }
-
-        /**
-         * content_link
-         */
-        if(!$fields->get('link_intern')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypePage');
-            $field->name = "link_intern";
-            $field->label = $this->_('Link (intern)');
-            $field->tags = 'links';
-            $field->icon = 'Link';
-            $field->columnWidth = 50;
-            $field->derefAsPage = 2;
-            $field->inputfield = 'InputfieldPageListSelect';
-            $field->parent_id = 0;
-            $field->labelFieldName = 'title';
-            $field->collapsed = 0;
-            $field->save();
-        }
-
-        if(!$fields->get('link_extern')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeText');
-            $field->name = "link_extern";
-            $field->label = $this->_('Link (extern)');
-            $field->tags = 'links';
-            $field->icon = 'Link';
-            $field->columnWidth = 50;
-            $field->save();
-        }
-
-        if(!$fields->get('link_text')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeText');
-            $field->name = "link_text";
-            $field->label = $this->_('Link Text');
-            $field->tags = 'links';
-            $field->icon = 'Link';
-            $field->columnWidth = 25;
-            $field->save();
-        }
-
-        if(!$fields->get('link_aria')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeText');
-            $field->name = "link_aria";
-            $field->label = $this->_('Link (aria-label)');
-            $field->tags = 'links';
-            $field->icon = 'Link';
-            $field->columnWidth = 25;
-            $field->save();
-        }
-
-        if(!$fields->get('link_new_tab')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeCheckbox');
-            $field->name = "link_new_tab";
-            $field->label = $this->_('Im neuen Tab öffnen?');
-            $field->tags = 'links';
-            $field->icon = 'Link';
-            $field->columnWidth = 25;
-            $field->save();
-        }
-
-        if(!$fields->get('select_button_style')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeOptions');
-            $field->name = "select_button_style";
-            $field->label = $this->_('Button Style');
-            $field->tags = 'settings';
-            $field->icon = 'Check square o';
-            $field->columnWidth = 25;
-            $field->save();
-
-            $manager = new SelectableOptionManager();
-            $options = '
-                1=primary
-                2=secondary
-                3=link
-                ';
-            $manager->setOptionsString($field, $options, false);
-
-            $field->save();
-        }
-
-        /**
-         * content_image
-         */
-        if(!$fields->get('image')) {
-            $crop_image =
-                <<<EOT
-                desktop,1920,1080
-                tablet,1024,600
-                mobile,600,600
-                quadratisch,750,750
-                EOT;
-
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeCroppableImage3');
-            $field->name = "image";
-            $field->label = $this->_('Bild');
-            $field->tags = 'images';
-            $field->icon = 'File image o';
-            $field->columnWidth = 25;
-            $field->maxFiles = 1;
-            $field->defaultValuePage = 0;
-            $field->gridMode = 'list';
-            $field->clientQuality = 90;
-            $field->extensions = 'gif jpg jpeg png';
-            $field->cropSetting = $crop_image;
-            $field->inputfieldClass = 'InputfieldCroppableImage3';
-            $field->save();
-
-            $f = $fields->get('image');
-            $f->save();
-        }
-
-        if(!$fields->get('image_tablet')) {
-            $crop_image_tablet =
-                <<<EOT
-                tablet,1024,600
-                EOT;
-
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeCroppableImage3');
-            $field->name = "image_tablet";
-            $field->label = $this->_('Tablet Bild');
-            $field->tags = 'images';
-            $field->icon = 'File image o';
-            $field->columnWidth = 25;
-            $field->maxFiles = 1;
-            $field->defaultValuePage = 0;
-            $field->gridMode = 'list';
-            $field->clientQuality = 90;
-            $field->extensions = 'gif jpg jpeg png';
-            $field->cropSetting = $crop_image_tablet;
-            $field->inputfieldClass = 'InputfieldCroppableImage3';
-            $field->save();
-
-            $ft = $fields->get('image_tablet');
-            $ft->save();
-        }
-
-        if(!$fields->get('image_mobile')) {
-            $crop_image_mobile =
-                <<<EOT
-                mobile,600,600
-                EOT;
-
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeCroppableImage3');
-            $field->name = "image_mobile";
-            $field->label = $this->_('Mobile Bild');
-            $field->tags = 'images';
-            $field->icon = 'File image o';
-            $field->columnWidth = 25;
-            $field->maxFiles = 1;
-            $field->defaultValuePage = 0;
-            $field->gridMode = 'list';
-            $field->okExtensions = [];
-            $field->clientQuality = 90;
-            $field->extensions = 'gif jpg jpeg png';
-            $field->cropSetting = $crop_image_mobile;
-            $field->inputfieldClass = 'InputfieldCroppableImage3';
-            $field->save();
-
-            $fm = $fields->get('image_mobile');
-            $fm->save();
-        }
-
-        if(!$fields->get('select_image_size')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeOptions');
-            $field->name = "select_image_size";
-            $field->label = $this->_('Bildgröße');
-            $field->tags = 'settings';
-            $field->icon = 'Check square o';
-            $field->columnWidth = 25;
-            $field->save();
-
-            $manager = new SelectableOptionManager();
-            $options = '
-                1=Original
-                2=Variationen (Desktop / Tablet / Mobile)
-                3=Quadratisch
-                ';
-            $manager->setOptionsString($field, $options, false);
-
-            $field->save();
-        }
-
-        /**
-         * content_separator
-         */
-        if(!$fields->get('text_class')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeText');
-            $field->name = "text_class";
-            $field->label = $this->_('Container Klasse (CSS)');
-            $field->tags = 'text';
-            $field->icon = 'File text o';
-            $field->textformatters = [0 => 'TextformatterEntities'];
-            $field->columnWidth = 20;
-            $field->save();
-        }
-
-        if(!$fields->get('text_difference_desktop')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeText');
-            $field->name = "text_difference_desktop";
-            $field->label = $this->_('Abstand in px ( Desktop )');
-            $field->tags = 'text';
-            $field->icon = 'File text o';
-            $field->textformatters = [0 => 'TextformatterEntities'];
-            $field->columnWidth = 20;
-            $field->save();
-        }
-
-        if(!$fields->get('text_difference_tablet')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeText');
-            $field->name = "text_difference_tablet";
-            $field->label = $this->_('Abstand in px ( Tablet )');
-            $field->tags = 'text';
-            $field->icon = 'File text o';
-            $field->textformatters = [0 => 'TextformatterEntities'];
-            $field->columnWidth = 20;
-            $field->save();
-        }
-
-        if(!$fields->get('text_difference_mobile')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeText');
-            $field->name = "text_difference_mobile";
-            $field->label = $this->_('Abstand in px ( Mobile )');
-            $field->tags = 'text';
-            $field->icon = 'File text o';
-            $field->textformatters = [0 => 'TextformatterEntities'];
-            $field->columnWidth = 20;
-            $field->save();
-        }
-
-        if(!$fields->get('checkbox_separator')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeCheckbox');
-            $field->name = "checkbox_separator";
-            $field->label = $this->_('Trennlinie?');
-            $field->description = $this->_('Soll eine Trennlinie angezeigt werden?');
-            $field->tags = 'settings';
-            $field->icon = 'Check';
-            $field->columnWidth = 20;
-            $field->save();
-        }
-
-        /**
-         * content_video
-         */
-        if(!$fields->get('file_video')) {
-            $field = new Field;
-            $field->type = $this->modules->get('FieldtypeFile');
-            $field->name = "file_video";
-            $field->label = $this->_('Video Upload');
-            $field->tags = 'files';
-            $field->icon = 'File video o';
-            $field->extensions = 'mp4';
-            $field->columnWidth = 50;
-            $field->maxFiles = 1;
-            $field->save();
-        }
-
-        /**
-         * matrix for the menu in the settings page
-         */
-        if(!$fields->get('matrix_content')) {
-            $id_headline = $fields->get('headline')->id;
-            $id_headline_tags = $fields->get('headline_tags')->id;
-            $id_headline_class = $fields->get('headline_class')->id;
-            $id_headline_align = $fields->get('headline_align')->id;
-
-            $id_text = $fields->get('text')->id;
-
-            $id_link_intern = $fields->get('link_intern')->id;
-            $id_link_extern = $fields->get('link_extern')->id;
-            $id_link_new_tab = $fields->get('link_new_tab')->id;
-            $id_link_aria = $fields->get('link_aria')->id;
-            $id_link_text = $fields->get('link_text')->id;
-            $id_select_button_style = $fields->get('select_button_style')->id;
-
-            $id_image = $fields->get('image')->id;
-            $id_image_tablet = $fields->get('image_tablet')->id;
-            $id_image_mobile = $fields->get('image_mobile')->id;
-            $id_select_image_size = $fields->get('select_image_size')->id;
-
-            $id_text_class = $fields->get('text_class')->id;
-            $id_text_difference_desktop = $fields->get('text_difference_desktop')->id;
-            $id_text_difference_tablet = $fields->get('text_difference_tablet')->id;
-            $id_text_difference_mobile = $fields->get('text_difference_mobile')->id;
-            $id_checkbox_separator = $fields->get('checkbox_separator')->id;
-
-            $id_file_video = $fields->get('file_video')->id;
-
-            $field = new Field();
-            $field->type = $this->modules->get("FieldtypeRepeaterMatrix");
-            $field->name = 'matrix_content';
-            $field->label = $this->_('Matrix (Content)');
-            $field->tags = 'matrix';
-            $field->icon = 'Codepen';
-            $field->addType = 1;
-
-            $field->repeaterFields = array(
-                0 => $id_headline,
-                1 => $id_headline_tags,
-                2 => $id_headline_class,
-                3 => $id_headline_align,
-                4 => $id_text,
-                5 => $id_link_intern,
-                6 => $id_link_extern,
-                7 => $id_link_text,
-                8 => $id_link_aria,
-                9 => $id_select_button_style,
-                10 => $id_link_new_tab,
-                11 => $id_image,
-                12 => $id_image_tablet,
-                13 => $id_image_mobile,
-                14 => $id_select_image_size,
-                15 => $id_text_class,
-                16 => $id_text_difference_desktop,
-                17 => $id_text_difference_tablet,
-                18 => $id_text_difference_mobile,
-                19 => $id_checkbox_separator,
-                20 => $id_file_video,
-            );
-
-            $field->matrix1_name = 'content_headline';
-            $field->matrix1_label = 'Überschrift';
-            $field->matrix1_head = '{matrix_label} [• {matrix_summary}]';
-            $field->matrix1_fields = array(
-                0 => $id_headline ,
-                1 => $id_headline_tags,
-                2 => $id_headline_class,
-                3 => $id_headline_align
-            );
-            $field->matrix1_sort = 1;
-
-            $field->matrix2_name = 'content_text';
-            $field->matrix2_label = 'Text';
-            $field->matrix2_head = '{matrix_label} [• {matrix_summary}]';
-            $field->matrix2_fields = array( 0 => $id_text );
-            $field->matrix2_sort = 2;
-
-            $field->matrix3_name = 'content_link';
-            $field->matrix3_label = 'Link';
-            $field->matrix3_head = '{matrix_label} [• {matrix_summary}]';
-            $field->matrix3_fields = array(
-                0 => $id_link_intern,
-                1 => $id_link_extern,
-                2 => $id_link_text,
-                3 => $id_link_aria,
-                4 => $id_select_button_style,
-                5 => $id_link_new_tab,
-            );
-            $field->matrix3_sort = 3;
-
-            $field->matrix4_name = 'content_image';
-            $field->matrix4_label = 'Bild';
-            $field->matrix4_head = '{matrix_label} [• {matrix_summary}]';
-            $field->matrix4_fields = array(
-                0 => $id_image,
-                1 => $id_image_tablet,
-                2 => $id_image_mobile,
-                3 => $id_select_image_size,
-            );
-            $field->matrix4_sort = 4;
-
-            $field->matrix5_name = 'content_separator';
-            $field->matrix5_label = 'Separator';
-            $field->matrix5_head = '{matrix_label} [• {matrix_summary}]';
-            $field->matrix5_fields = array(
-                0 => $id_text_class,
-                1 => $id_text_difference_desktop,
-                2 => $id_text_difference_tablet,
-                3 => $id_text_difference_mobile,
-                4 => $id_checkbox_separator,
-            );
-            $field->matrix5_sort = 5;
-
-            $field->matrix6_name = 'content_video';
-            $field->matrix6_label = 'Video';
-            $field->matrix6_head = '{matrix_label} [• {matrix_summary}]';
-            $field->matrix6_fields = array(
-                0 => $id_file_video,
-                1 => $id_image,
-            );
-            $field->matrix6_sort = 6;
-
-            $field->save();
-
-            $repeater_matrix = $fields->get('matrix_content');
-
-            $repeater_matrix_template = $repeater_matrix->type->getMatrixTemplate($repeater_matrix);
-            $repeater_matrix_template->fieldgroup->add('headline');
-            $repeater_matrix_template->fieldgroup->add('headline_tags');
-            $repeater_matrix_template->fieldgroup->add('headline_class');
-            $repeater_matrix_template->fieldgroup->add('headline_align');
-
-            $repeater_matrix_template->fieldgroup->add('text');
-
-            $repeater_matrix_template->fieldgroup->add('link_intern');
-            $repeater_matrix_template->fieldgroup->add('link_extern');
-            $repeater_matrix_template->fieldgroup->add('link_text');
-            $repeater_matrix_template->fieldgroup->add('link_aria');
-            $repeater_matrix_template->fieldgroup->add('select_button_style');
-            $repeater_matrix_template->fieldgroup->add('link_new_tab');
-
-            $repeater_matrix_template->fieldgroup->add('image');
-            $repeater_matrix_template->fieldgroup->add('image_tablet');
-            $repeater_matrix_template->fieldgroup->add('image_mobile');
-            $repeater_matrix_template->fieldgroup->add('select_image_size');
-
-            $repeater_matrix_template->fieldgroup->add('text_class');
-            $repeater_matrix_template->fieldgroup->add('text_difference_desktop');
-            $repeater_matrix_template->fieldgroup->add('text_difference_tablet');
-            $repeater_matrix_template->fieldgroup->add('text_difference_mobile');
-            $repeater_matrix_template->fieldgroup->add('checkbox_separator');
-
-            $repeater_matrix_template->fieldgroup->add('file_video');
-
-            $repeater_matrix_template->fieldgroup->save();
-
-            $this->fields->get('link_new_tab')->set('columnWidth', 25)->save();
-            $this->fields->get('link_intern')->set('showIf', '')->save();
-            $this->fields->get('link_extern')->set('showIf', '')->save();
-            $this->fields->get('link_new_tab')->set('showIf', '')->save();
-
-            $repeater_matrix_template->save();
-        }
     }
 }
