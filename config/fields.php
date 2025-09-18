@@ -2,6 +2,48 @@
 
 return [
     [
+        'name' => 'fieldset_video_content',
+        'type' => 'FieldsetOpen',
+        'label' => 'Video Content',
+        'tags' => 'fieldsets',
+        'icon' => 'Tag',
+    ],
+    [
+        'name' => 'fieldset_video_content_END',
+        'type' => 'FieldsetClose',
+        'label' => 'Close an open fieldset',
+        'tags' => 'fieldsets',
+        'icon' => 'Tag',
+    ],
+    [
+        'name' => 'fieldset_image_content',
+        'type' => 'FieldsetOpen',
+        'label' => 'Image Content',
+        'tags' => 'fieldsets',
+        'icon' => 'Tag',
+    ],
+    [
+        'name' => 'fieldset_image_content_END',
+        'type' => 'FieldsetClose',
+        'label' => 'Close an open fieldset',
+        'tags' => 'fieldsets',
+        'icon' => 'Tag',
+    ],
+    [
+        'name' => 'fieldset_link_settings',
+        'type' => 'FieldsetOpen',
+        'label' => 'Link Settings',
+        'tags' => 'fieldsets',
+        'icon' => 'Tag',
+    ],
+    [
+        'name' => 'fieldset_link_settings_END',
+        'type' => 'FieldsetClose',
+        'label' => 'Close an open fieldset',
+        'tags' => 'fieldsets',
+        'icon' => 'Tag',
+    ],
+    [
         'name' => 'headline',
         'type' => 'Text',
         'label' => 'Überschrift',
@@ -262,27 +304,6 @@ return [
                 EOT,
     ],
     [
-        'name' => 'image_background',
-        'type' => 'CroppableImage3',
-        'label' => 'Hintergrundbild',
-        'tags' => 'images',
-        'icon' => 'File image o',
-        'width' => 100,
-        'maxFiles' => 1,
-        'defaultValuePage' => 0,
-        'gridMode' => 'list',
-        'clientQuality' => 90,
-        'extensions' => 'jpg jpeg png',
-        'inputfieldClass' => 'InputfieldCroppableImage3',
-        'cropSetting' =>
-            <<<EOT
-                desktop,1920,1080
-                tablet,1024,600
-                mobile,600,600
-                quadratisch,750,750
-                EOT,
-    ],
-    [
         'name' => 'file_video',
         'type' => 'File',
         'label' => 'Video upload',
@@ -298,20 +319,55 @@ return [
         'label' => 'Video Untertitel',
         'tags' => 'files',
         'icon' => 'File video o',
-        'width' => 25,
+        'width' => 50,
         'extensions' => 'vtt',
         'maxFiles' => 1,
     ],
     [
         'name' => 'repeater_accordion',
         'type' => 'Repeater',
-        'label' => 'Inhalt',
+        'label' => 'Repeater (Accordion)',
         'tags' => 'repeater',
         'icon' => 'Repeat',
         'width' => 100,
         'fields' => [
             'headline',
             'text',
+        ]
+    ],
+    [
+        'name' => 'repeater_header_smooth',
+        'type' => 'Repeater',
+        'label' => 'Repeater (Header / Smooth Boxes)',
+        'tags' => 'repeater',
+        'icon' => 'Repeat',
+        'width' => 100,
+        'fields' => [
+            'fieldset_image_content',
+            'image',
+            'image_tablet',
+            'image_mobile',
+            'select_image_size',
+            'fieldset_image_content_END',
+            'fieldset_video_content',
+            'file_video',
+            'file_video_subtitle',
+            'text_video_speaker',
+            'text_video_description',
+            'fieldset_video_content_END',
+            'headline',
+            'headline_tags',
+            'headline_class',
+            'headline_align',
+            'text',
+            'fieldset_link_settings',
+            'link_intern',
+            'link_extern',
+            'link_text',
+            'link_aria',
+            'link_new_tab',
+            'select_button_style',
+            'fieldset_link_settings_END',
         ]
     ],
     [
@@ -323,6 +379,7 @@ return [
         'addType' => 1,
         'fields' => [
             'repeater_accordion',
+            'repeater_header_smooth',
             'headline',
             'headline_tags',
             'headline_class',
@@ -415,6 +472,13 @@ return [
                 'label' => 'Accordion',
                 'fields' => [
                     'repeater_accordion',
+                ]
+            ],
+            [
+                'name' => 'content_smooth',
+                'label' => 'Smooth Boxes',
+                'fields' => [
+                    'repeater_header_smooth',
                 ]
             ]
         ]
