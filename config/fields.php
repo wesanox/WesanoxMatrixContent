@@ -129,7 +129,7 @@ return [
         'label' => 'Container Klasse (CSS)',
         'tags' => 'text',
         'icon' => 'File text o',
-        'width' => 20,
+        'width' => 50,
         'formatter' => 'TextformatterEntities',
         'inputfieldClass' => null,
     ],
@@ -139,7 +139,7 @@ return [
         'label' => 'Abstand in px ( Desktop )',
         'tags' => 'text',
         'icon' => 'File text o',
-        'width' => 20,
+        'width' => 25,
         'formatter' => 'TextformatterEntities',
         'inputfieldClass' => null,
     ],
@@ -149,7 +149,7 @@ return [
         'label' => 'Abstand in px ( Tablet )',
         'tags' => 'text',
         'icon' => 'File text o',
-        'width' => 20,
+        'width' => 25,
         'formatter' => 'TextformatterEntities',
         'inputfieldClass' => null,
     ],
@@ -159,7 +159,7 @@ return [
         'label' => 'Abstand in px ( Mobile )',
         'tags' => 'text',
         'icon' => 'File text o',
-        'width' => 20,
+        'width' => 25,
         'formatter' => 'TextformatterEntities',
         'inputfieldClass' => null,
     ],
@@ -169,7 +169,7 @@ return [
         'label' => 'Trennlinie?',
         'tags' => 'settings',
         'icon' => 'Check',
-        'width' => 20,
+        'width' => 25,
         'formatter' => null,
         'inputfieldClass' => null,
     ],
@@ -248,6 +248,23 @@ return [
                 2=Variationen (Desktop / Tablet / Mobile)
                 3=Quadratisch
                 ',
+    ],
+    [
+        'name' => 'select_separator_options',
+        'type' => 'Options',
+        'label' => 'Separator Optionen',
+        'tags' => 'settings',
+        'icon' => 'Check square o',
+        'width' => 50,
+        'defaultValue' => 1,
+        'required' => 1,
+        'options' => '
+                1=Abstand
+                2=Bildtrenner links
+                3=Bildtrenner mitte
+                4=Bildtrenner rechts
+                5=Pfeil "next Section"
+            ',
     ],
     [
         'name' => 'image',
@@ -376,7 +393,6 @@ return [
         'label' => 'Matrix (Content)',
         'tags' => 'matrix',
         'icon' => 'Codepen',
-        'addType' => 1,
         'fields' => [
             'repeater_accordion',
             'repeater_header_smooth',
@@ -391,10 +407,11 @@ return [
             'link_aria',
             'link_new_tab',
             'select_button_style',
+            'select_separator_options',
+            'select_image_size',
             'image',
             'image_tablet',
             'image_mobile',
-            'select_image_size',
             'text_class',
             'text_difference_desktop',
             'text_difference_tablet',
@@ -449,11 +466,13 @@ return [
                 'name' => 'content_separator',
                 'label' => 'Separator',
                 'fields' => [
+                    'select_separator_options',
                     'text_class',
-                    'text_difference_desktop',
+                    'text_difference_desktop' ,
                     'text_difference_tablet',
                     'text_difference_mobile',
                     'checkbox_separator',
+                    'image'
                 ]
             ],
             [
