@@ -1,1 +1,1 @@
-<?php echo $page->edit('text');
+<?php echo $page->text;
