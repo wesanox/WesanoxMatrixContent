@@ -15,7 +15,7 @@ class WesanoxMatrixContent extends WireData implements Module
             'icon' => 'codepen',
             'singular' => true,
             'autoload' => true,
-            'installs' => ['PageFrontEdit', 'CroppableImage3','WesanoxFrameworkPackage'],
+            'installs' => ['PageFrontEdit', 'CroppableImage3','WesanoxFrameworkPackage','WesanoxHelperFields'],
             'requires' => array(
                 'ProcessWire>=3.0.210',
                 'PHP>=8.0.0',
@@ -36,7 +36,6 @@ class WesanoxMatrixContent extends WireData implements Module
         'CroppableImage3' => 'https://github.com/horst-n/CroppableImage3/archive/master.zip',
         'WesanoxFrameworkPackage' => 'https://github.com/wesanox/WesanoxFrameworkPackage/archive/refs/heads/main.zip',
         'WesanoxHelperFields' => 'https://github.com/wesanox/WesanoxHelperFields/archive/refs/heads/main.zip',
-        'WesanoxHelperClasses' => 'https://github.com/wesanox/WesanoxHelperClasses/archive/refs/heads/main.zip',
     ];
 
     /**
@@ -94,8 +93,7 @@ class WesanoxMatrixContent extends WireData implements Module
          */
         foreach ($this->external_modules as $module_name => $module_url) {
             if (!$this->modules->isInstalled($module_name)) {
-                $message = $this->helper_classes->downloadInstall($module_name, $module_url);
-                if ($message !== true) $this->error($message);
+                $this->helper_classes->downloadInstall($module_name, $module_url);
             }
         }
 
