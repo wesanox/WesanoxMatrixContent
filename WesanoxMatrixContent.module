@@ -45,6 +45,7 @@ class WesanoxMatrixContent extends WireData implements Module
      * @var Module|_Module|null $helper_fields
      */
     protected Module|_Module|null $helper_fields;
+    protected Module|_Module|null $helper_forms;
     protected Module|_Module|null $helper_classes;
 
     /**
