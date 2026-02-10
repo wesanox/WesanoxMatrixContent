@@ -499,6 +499,11 @@ return [
                 'fields' => [
                     'repeater_header_smooth',
                 ]
+            ],
+            [
+                'name' => 'content_forms',
+                'label' => 'Contact Form',
+                'fields' => []
             ]
         ]
     ]

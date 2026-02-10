@@ -22,6 +22,7 @@ class WesanoxMatrixContent extends WireData implements Module
                 'FieldtypeRepeaterMatrix>=0.0.9',
                 'WesanoxFrameworkPackage>=0.0.1',
                 'WesanoxHelperFields>=0.0.1',
+                'WesanoxHelperForms>=0.0.1',
                 'WesanoxHelperClasses>=0.0.1',
             ),
         );
@@ -36,6 +37,7 @@ class WesanoxMatrixContent extends WireData implements Module
         'CroppableImage3' => 'https://github.com/horst-n/CroppableImage3/archive/master.zip',
         'WesanoxFrameworkPackage' => 'https://github.com/wesanox/WesanoxFrameworkPackage/archive/refs/heads/main.zip',
         'WesanoxHelperFields' => 'https://github.com/wesanox/WesanoxHelperFields/archive/refs/heads/main.zip',
+        'WesanoxHelperForms' => 'https://github.com/wesanox/WesanoxHelperForms/archive/refs/heads/main.zip'
     ];
 
     /**
@@ -44,6 +46,11 @@ class WesanoxMatrixContent extends WireData implements Module
      */
     protected Module|_Module|null $helper_fields;
     protected Module|_Module|null $helper_classes;
+
+    /**
+     * @var array|string[]
+     */
+    protected array $forms_array = [];
 
     /**
      * @var array $fields_array
@@ -67,6 +74,7 @@ class WesanoxMatrixContent extends WireData implements Module
         $this->helper_classes = $this->modules->get('WesanoxHelperClasses');
         $this->helper_fields = $this->modules->get('WesanoxHelperFields');
 
+        $this->forms_array = include $this->config->paths->WesanoxLottery . 'config/forms.php';
         $this->fields_array = include $this->config->paths->WesanoxMatrixContent . 'config/fields.php';
     }
 
@@ -96,6 +104,11 @@ class WesanoxMatrixContent extends WireData implements Module
                 $this->helper_classes->downloadInstall($module_name, $module_url);
             }
         }
+
+        /**
+         * create forms
+         */
+        $this->helper_forms->createForm($this->forms_array);
 
         /**
          * create fields
@@ -145,6 +158,11 @@ class WesanoxMatrixContent extends WireData implements Module
      */
     public function ___uninstall(): void
     {
+        /**
+         * delete forms
+         */
+        $this->helper_forms->deleteForm($this->forms_array);
+
         /**
          * delete template files
          */
