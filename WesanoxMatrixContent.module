@@ -72,6 +72,7 @@ class WesanoxMatrixContent extends WireData implements Module
         parent::__construct();
 
         $this->helper_classes = $this->modules->get('WesanoxHelperClasses');
+        $this->helper_forms = $this->modules->get('WesanoxHelperForms');
         $this->helper_fields = $this->modules->get('WesanoxHelperFields');
 
         $this->forms_array = include $this->config->paths->WesanoxMatrixContent . 'config/forms.php';
