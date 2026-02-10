@@ -116,6 +116,26 @@ This template is ideal for:
 
 ------------------
 
+## SCSS and JS output
+
+To output SCSS and JS files from the items and also for render automatically, you neet the following configuration:
+
+```
+foreach (wire('config')->styles as $styles) {
+  echo "\n\t<link rel='stylesheet' href='$styles' /> ";
+}
+```
+
+And for the js files in the footer BEFORE the main.js file:
+
+```
+foreach(wire('config')->scripts AS $scripts) {
+  echo '<script src="' . $scripts . '"></script>';
+}
+```
+
+------------------
+
 ## Uninstallation
 
 On uninstall, the module cleans up everything it created:
